@@ -15,7 +15,6 @@ __pycache__/
 *.pt
 *.pth
 *.onnx
-unet_architecture*
 runs/
 outputs/
 out/
@@ -25,3 +24,8 @@ out/
 Thumbs.db
 .vscode/
 .idea/
+setup_venv_linux_mac.sh
+unet_architecture
+setup_venv_windows.ps1
+archive.zip
+.gitignore
