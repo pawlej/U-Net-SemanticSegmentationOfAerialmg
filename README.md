@@ -1,77 +1,19 @@
-# Semantic Segmentation U-Net Project
+# U-Net Semantic Segmentation of Aerial Imagery
 
-Projekt służy do przygotowania danych oraz trenowania modelu U-Net do segmentacji semantycznej obrazów lotniczych/satelitarnych.
+Projekt dotyczy segmentacji semantycznej obrazów lotniczych/satelitarnych z użyciem architektury **U-Net** zaimplementowanej w **PyTorch**.
 
-W repozytorium znajdują się dwa główne notebooki:
+Celem projektu jest przygotowanie danych obrazowych, zakodowanie masek segmentacyjnych, pocięcie obrazów na mniejsze fragmenty oraz wytrenowanie modelu, który klasyfikuje każdy piksel obrazu do jednej z klas terenowych.
 
-- `data_preprocessing.ipynb` — przygotowanie danych, kodowanie masek klas oraz cięcie obrazów i masek na patche.
-- `Train_model.ipynb` — podział danych na train/validation/test, definicja datasetu PyTorch, model U-Net, trening oraz wizualizacja predykcji.
+Projekt składa się z dwóch głównych etapów:
 
-## Struktura danych
+1. **Preprocessing danych** — przygotowanie obrazów i masek do treningu.
+2. **Trening modelu U-Net** — uczenie modelu segmentacji semantycznej.
 
-Notebook preprocessingowy zakłada strukturę danych podobną do:
+---
 
-```text
-Semantic segmentation dataset/
-├── Tile 1/
-│   ├── images/
-│   │   ├── image_part_001.jpg
-│   │   └── ...
-│   └── masks/
-│       ├── image_part_001.png
-│       └── ...
-├── Tile 2/
-│   ├── images/
-│   └── masks/
-└── ...
-```
+## 1. Przygotowanie środowiska
 
-Po uruchomieniu preprocessingu powstaje folder:
-
-```text
-prepared_data256/
-├── images/
-│   ├── image_part_001_0.png
-│   ├── image_part_001_1.png
-│   └── ...
-└── masks/
-    ├── image_part_001_0.png
-    ├── image_part_001_1.png
-    └── ...
-```
-
-## Ważne: spójny `patch_size`
-
-W notebooku `Train_model.ipynb` dane są ładowane z folderu:
-
-```python
-prepared_data256
-```
-
-Dlatego w `data_preprocessing.ipynb` najlepiej ustawić:
-
-```python
-patch_size = 256
-```
-
-Jeżeli ustawisz np. `patch_size = 1024`, preprocessing utworzy folder `prepared_data1024`, a trening nie znajdzie danych, dopóki nie zmienisz ścieżki w notebooku treningowym.
-
-## Klasy segmentacji
-
-Maski są kodowane na 6 klas:
-
-| ID | Klasa |
-|---:|---|
-| 0 | Building |
-| 1 | Land |
-| 2 | Road |
-| 3 | Vegetation |
-| 4 | Water |
-| 5 | Unlabeled |
-
-Mapowanie kolorów znajduje się w funkcji `mask_encoding()` w notebooku preprocessingowym.
-
-## Instalacja środowiska
+Najpierw należy utworzyć lokalne środowisko wirtualne `.venv` i zainstalować wymagane biblioteki z pliku `requirements.txt`.
 
 ### Windows PowerShell
 
@@ -83,6 +25,18 @@ python -m venv .venv
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 python -m ipykernel install --user --name semantic-segmentation-unet --display-name "Python (semantic-segmentation-unet)"
+```
+
+Jeżeli PowerShell blokuje aktywację środowiska lub uruchamianie skryptów, można jednorazowo użyć:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+Następnie ponownie aktywować środowisko:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
 ```
 
 ### Linux / macOS
@@ -97,7 +51,9 @@ pip install -r requirements.txt
 python -m ipykernel install --user --name semantic-segmentation-unet --display-name "Python (semantic-segmentation-unet)"
 ```
 
-Potem otwórz Jupytera:
+### Uruchomienie notebooków
+
+Po zainstalowaniu zależności uruchom Jupytera:
 
 ```bash
 jupyter notebook
@@ -109,19 +65,241 @@ W notebooku wybierz kernel:
 Python (semantic-segmentation-unet)
 ```
 
-## Sugerowana kolejność pracy
+Można też uruchamiać notebooki bezpośrednio w VS Code, wybierając ten sam kernel.
 
-1. Wrzuć dataset do folderu `Semantic segmentation dataset/`.
-2. Otwórz `data_preprocessing.ipynb`.
-3. Ustaw `patch_size = 256`.
-4. Uruchom preprocessing.
-5. Sprawdź, czy powstał folder `prepared_data256/images` oraz `prepared_data256/masks`.
-6. Otwórz `Train_model.ipynb`.
-7. Uruchom komórki treningowe od góry do dołu.
+---
 
-## Typowy workflow Git
+## 2. Struktura katalogów
 
-Po zmianach w projekcie:
+Docelowa struktura projektu powinna wyglądać następująco:
+
+```text
+U-Net-SemanticSegmentationOfAerialmg/
+├── data/
+│   └── Semantic segmentation dataset/
+│       ├── Tile 1/
+│       │   ├── images/
+│       │   │   ├── image_part_001.jpg
+│       │   │   └── ...
+│       │   └── masks/
+│       │       ├── image_part_001.png
+│       │       └── ...
+│       ├── Tile 2/
+│       │   ├── images/
+│       │   └── masks/
+│       └── ...
+│
+├── data_preprocessing.ipynb
+├── Train_model.ipynb
+├── requirements.txt
+├── README.md
+└── .gitignore
+```
+
+### Najważniejsze katalogi
+
+* `data/Semantic segmentation dataset/` — folder z oryginalnym datasetem.
+* `prepared_data256/` — folder z przygotowanymi patchami obrazów i masek.
+* `data/data_preprocessing.ipynb` — notebook do przygotowania danych(powstaje dopiero po wygenrowaniu danych).
+* `Train_model.ipynb` — notebook do trenowania modelu U-Net.
+* `requirements.txt` — lista bibliotek potrzebnych do uruchomienia projektu.
+
+---
+
+## 3. Dataset
+
+Projekt korzysta z datasetu **Semantic Segmentation of Aerial Imagery**, zawierającego obrazy lotnicze/satelitarne oraz odpowiadające im maski segmentacyjne.
+
+Maski są kodowane na klasy semantyczne. W projekcie wykorzystywane jest 6 klas:
+
+| ID | Klasa      |
+| -: | ---------- |
+|  0 | Building   |
+|  1 | Land       |
+|  2 | Road       |
+|  3 | Vegetation |
+|  4 | Water      |
+|  5 | Unlabeled  |
+
+Kodowanie kolorów masek do indeksów klas znajduje się w notebooku:
+
+```text
+data_preprocessing.ipynb
+```
+
+w funkcji:
+
+```python
+mask_encoding()
+```
+
+---
+
+## 4. Kolejność uruchamiania projektu
+
+Projekt należy uruchamiać w następującej kolejności:
+
+```text
+1. Utworzenie środowiska .venv
+2. Instalacja zależności z requirements.txt
+3. Uruchomienie data_preprocessing.ipynb
+4. Wygenerowanie folderu prepared_data{patch_size}
+5. Uruchomienie Train_model.ipynb
+6. Trening i ewaluacja modelu U-Net
+```
+
+---
+
+## 5. Preprocessing danych
+
+Najpierw należy uruchomić notebook:
+
+```text
+data_preprocessing.ipynb
+```
+
+Notebook odpowiada za:
+
+* wczytanie oryginalnych obrazów i masek,
+* przekonwertowanie kolorów masek na numery klas,
+* pocięcie dużych obrazów na mniejsze fragmenty,
+* zapis przygotowanych danych do folderu `prepared_data{patch_size}`.
+
+Najważniejszym parametrem jest:
+
+```python
+patch_size = 256
+```
+
+Parametr `patch_size` określa rozmiar fragmentów, na które zostaną pocięte obrazy i maski.
+
+Przykładowo:
+
+```python
+patch_size = 256
+```
+
+utworzy folder:
+
+```text
+prepared_data256/
+```
+
+Natomiast:
+
+```python
+patch_size = 512
+```
+
+utworzy folder:
+
+```text
+prepared_data512/
+```
+
+---
+
+## 6. Ważne: zgodność rozmiaru patchy z treningiem
+
+Rozmiar patchy użyty w preprocessingu musi być zgodny z folderem używanym w notebooku treningowym.
+
+Jeżeli w `data_preprocessing.ipynb` ustawiono:
+
+```python
+patch_size = 256
+```
+
+to w `Train_model.ipynb` dane powinny być ładowane z folderu:
+
+```python
+prepared_data256
+```
+
+Jeżeli zmienisz rozmiar patchy, np. na:
+
+```python
+patch_size = 512
+```
+
+to należy również zmienić ścieżkę w notebooku treningowym na:
+
+```python
+prepared_data512
+```
+
+W przeciwnym razie notebook treningowy nie znajdzie danych albo będzie trenował na danych przygotowanych dla innego rozmiaru patcha.
+
+---
+
+## 7. Trening modelu
+
+Po przygotowaniu danych należy uruchomić notebook:
+
+```text
+Train_model.ipynb
+```
+
+Notebook treningowy wykonuje następujące kroki:
+
+* wczytuje przygotowane obrazy i maski,
+* dzieli dane na zbiory treningowy, walidacyjny i testowy,
+* definiuje klasę datasetu PyTorch,
+* tworzy model U-Net,
+* definiuje funkcję straty i optymalizator,
+* trenuje model,
+* zapisuje historię treningu,
+* wizualizuje predykcje modelu.
+
+Model U-Net jest architekturą typu encoder-decoder z połączeniami skip connection. Encoder stopniowo zmniejsza rozdzielczość reprezentacji i wydobywa cechy wysokiego poziomu, a decoder odtwarza mapę segmentacji piksel po pikselu.
+
+---
+
+## 8. Typowy workflow dla nowej osoby w projekcie
+
+Po sklonowaniu repozytorium:
+
+```bash
+git clone https://github.com/pawlej/U-Net-SemanticSegmentationOfAerialmg.git
+cd U-Net-SemanticSegmentationOfAerialmg
+```
+
+Następnie należy utworzyć środowisko:
+
+### Windows
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python -m ipykernel install --user --name semantic-segmentation-unet --display-name "Python (semantic-segmentation-unet)"
+jupyter notebook
+```
+
+### Linux / macOS
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python -m ipykernel install --user --name semantic-segmentation-unet --display-name "Python (semantic-segmentation-unet)"
+jupyter notebook
+```
+
+Potem należy uruchomić notebooki w kolejności:
+
+```text
+1. data_preprocessing.ipynb
+2. Train_model.ipynb
+```
+
+---
+
+
+## 9. Typowy workflow Git
+
+Po wprowadzeniu zmian:
 
 ```bash
 git status
@@ -130,72 +308,38 @@ git commit -m "Opis zmian"
 git push
 ```
 
-## Co wrzucać do repozytorium
+Przed commitem warto sprawdzić, czy Git nie dodaje przypadkowo środowiska `.venv` albo dużych plików modelu:
 
-Wrzucamy:
-
-```text
-data_preprocessing.ipynb
-Train_model.ipynb
-requirements.txt
-README.md
-setup_venv_windows.ps1
-setup_venv_linux_mac.sh
-.gitignore
+```bash
+git status
 ```
 
-Nie wrzucamy:
+Aktualizacja lokalnego repozytorium przez innych członków zespołu:
 
-```text
-.venv/
-prepared_data256/
-prepared_data1024/
-Semantic segmentation dataset/
-__pycache__/
-.ipynb_checkpoints/
-*.pth
-*.pt
+```bash
+git pull
 ```
 
-Duże dane i wytrenowane modele najlepiej trzymać poza repozytorium albo użyć Git LFS.
+---
 
-## Uwaga o notebookach
+## 10. Uwagi dotyczące notebooków
 
-Przed commitem warto zrobić w każdym notebooku:
+Przed oddaniem projektu warto uruchomić notebooki od początku:
 
 ```text
 Kernel -> Restart Kernel and Run All Cells
 ```
 
-Dzięki temu łatwo sprawdzić, czy projekt da się uruchomić od zera.
+Najpierw:
 
-W obecnej wersji notebooka preprocessingowego warto sprawdzić lub usunąć niedokończone fragmenty typu:
-
-```python
-img_path =
-images =
+```text
+data_preprocessing.ipynb
 ```
 
-Takie komórki mogą przerwać wykonanie opcji `Run All`.
+potem:
 
-## Wizualizacja architektury U-Net
-
-Notebook treningowy używa opcjonalnie `torchview` do wygenerowania grafu architektury modelu.
-
-Jeżeli zapis grafu do PNG nie działa, może brakować systemowego programu Graphviz.
-
-### Windows
-
-Najprościej zainstalować Graphviz z oficjalnego instalatora i dodać go do `PATH`.
-
-### Linux
-
-```bash
-sudo apt-get install graphviz
+```text
+Train_model.ipynb
 ```
 
-### macOS
-
-```bash
-brew install graphviz
-```
+Dzięki temu można upewnić się, że cały pipeline działa od zera.
