@@ -1,0 +1,19 @@
+# Core scientific stack
+numpy
+pillow
+opencv-python
+matplotlib
+scikit-learn
+
+# Deep learning
+torch
+torchvision
+torchmetrics
+
+# Jupyter / notebooks
+jupyter
+ipykernel
+
+# Optional: model architecture visualization
+torchview
+graphviz
